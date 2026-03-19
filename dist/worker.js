@@ -1,11 +1,3 @@
-------formdata-undici-041719016506
-Content-Disposition: form-data; name="metadata"
-
-{"main_module":"index.js","bindings":[{"name":"R2_BUCKET","type":"r2_bucket","bucket_name":"test"},{"name":"UPLOAD_LIMITER","type":"ratelimit","namespace_id":"1001","simple":{"limit":100,"period":60}},{"name":"READ_LIMITER","type":"ratelimit","namespace_id":"1002","simple":{"limit":500,"period":60}}],"compatibility_date":"2023-12-01","compatibility_flags":[]}
-------formdata-undici-041719016506
-Content-Disposition: form-data; name="index.js"; filename="index.js"
-Content-Type: application/javascript+module
-
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
@@ -2218,12 +2210,16 @@ async function patch_default(c) {
 __name(patch_default, "default");
 
 // src/routes/put.ts
+var MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 async function put_default(c) {
   const key = c.req.param("key");
   const file = await c.req.blob();
   const bucket = c.env.R2_BUCKET;
   if (!key) {
     return c.text("file name is required", 400);
+  }
+  if (file.size > MAX_UPLOAD_SIZE) {
+    return c.text("File too large. Maximum size is 10MB", 413);
   }
   await bucket.put(key, file, {
     httpMetadata: {
@@ -2241,6 +2237,7 @@ async function create_default(c) {
     return c.text("file name is required", 400);
   }
   const upload = await c.env.R2_BUCKET.createMultipartUpload(key);
+  await c.env.UPLOAD_SIZES.put(upload.uploadId, "0");
   return c.json({
     uploadId: upload.uploadId,
     key
@@ -2249,6 +2246,7 @@ async function create_default(c) {
 __name(create_default, "default");
 
 // src/routes/mpu/parts.ts
+var MAX_UPLOAD_SIZE2 = 10 * 1024 * 1024;
 async function parts_default(c) {
   const key = c.req.param("key");
   const uploadId = c.req.query("uploadId");
@@ -2261,6 +2259,12 @@ async function parts_default(c) {
     uploadId
   );
   const part = await c.req.blob();
+  const currentSize = parseInt(await c.env.UPLOAD_SIZES.get(uploadId) || "0");
+  const newSize = currentSize + part.size;
+  if (newSize > MAX_UPLOAD_SIZE2) {
+    return c.text(`Upload exceeds 10MB limit (current: ${currentSize}, part: ${part.size})`, 413);
+  }
+  await c.env.UPLOAD_SIZES.put(uploadId, newSize.toString());
   const uploaded = await multipartUpload.uploadPart(
     parseInt(partNumber),
     part
@@ -2288,6 +2292,7 @@ async function abort_default(c) {
   );
   try {
     await multipartUpload.abort();
+    await c.env.UPLOAD_SIZES.delete(uploadId);
   } catch (error) {
     return new Response(error.message, { status: 400 });
   }
@@ -2316,6 +2321,7 @@ async function complete_default(c) {
   }
   try {
     const object = await multipartUpload.complete(body.parts);
+    await c.env.UPLOAD_SIZES.delete(uploadId);
     return new Response(null, {
       headers: {
         etag: object.httpEtag
@@ -2370,6 +2376,7 @@ async function checkHeader_default(c, next) {
 __name(checkHeader_default, "default");
 
 // src/index.ts
+var MAX_UPLOAD_SIZE3 = 10 * 1024 * 1024;
 var app = new Hono2();
 app.use(cors());
 app.get("/support_mpu", support_default);
@@ -2401,5 +2408,3 @@ export {
   index_default as default
 };
 //# sourceMappingURL=index.js.map
-
-------formdata-undici-041719016506--

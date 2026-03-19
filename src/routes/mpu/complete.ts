@@ -32,6 +32,7 @@ export default async function (c: Context) {
 
   try {
     const object = await multipartUpload.complete(body.parts)
+    await c.env.UPLOAD_SIZES.delete(uploadId)
     return new Response(null, {
       headers: {
         etag: object.httpEtag

@@ -13,11 +13,14 @@ import MpuSupport from './routes/mpu/support'
 
 import checkHeader from "./middleware/checkHeader"
 
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024
+
 interface Env {
   Bindings: {
     R2_BUCKET: R2Bucket
     UPLOAD_LIMITER: Ratelimit
     READ_LIMITER: Ratelimit
+    UPLOAD_SIZES: KVNamespace
   }
 }
 

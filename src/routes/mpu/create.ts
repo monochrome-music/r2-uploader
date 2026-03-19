@@ -8,6 +8,8 @@ export default async function (c: Context) {
   }
 
   const upload = await c.env.R2_BUCKET.createMultipartUpload(key)
+  
+  await c.env.UPLOAD_SIZES.put(upload.uploadId, '0')
 
   return c.json({
     uploadId: upload.uploadId,

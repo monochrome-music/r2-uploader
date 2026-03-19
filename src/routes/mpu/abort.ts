@@ -15,6 +15,7 @@ export default async function (c: Context) {
 
   try {
     await multipartUpload.abort();
+    await c.env.UPLOAD_SIZES.delete(uploadId)
   } catch (error: any) {
     return new Response(error.message, {status: 400})
   }
