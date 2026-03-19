@@ -2,6 +2,7 @@
   "name": "r2-uploader-example-worker",
   "scripts": {
     "dev": "wrangler dev src/index.ts --port 4897",
+    "build": "wrangler deploy --dry-run --outdir dist src/index.ts",
     "deploy": "wrangler deploy --minify src/index.ts"
   },
   "dependencies": {

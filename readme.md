@@ -8,7 +8,7 @@ This is an example worker for the R2 Uploader, you can use the code in the `./di
 
 1. Clone this repository
    ```shell
-   git clone https://github.com/jw-12138/r2-uploader-example-worker.git
+   git clone https://github.com/monochrome-music/r2-uploader.git
    ```
 2. Install the dependencies
    ```shell
