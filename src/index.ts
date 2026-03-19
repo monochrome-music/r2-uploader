@@ -4,7 +4,6 @@ import {cors} from 'hono/cors'
 import Get from './routes/get'
 import Patch from './routes/patch'
 import Put from './routes/put'
-import Delete from "./routes/delete"
 
 import MpuCreate from './routes/mpu/create'
 import MpuParts from './routes/mpu/parts'
@@ -35,7 +34,6 @@ app.post('/mpu/complete/:key{.*}', MpuComplete)
 app.get('/:key{.*}', Get)
 app.patch('/', Patch)
 app.put('/:key{.*}', Put)
-app.delete('/:key{.*}', Delete)
 
 app.all('*', c => {
   return c.text('404 Not Found')

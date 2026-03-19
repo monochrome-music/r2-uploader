@@ -2,7 +2,7 @@ This is an example worker for the R2 Uploader, you can use the code in the `./di
 
 ### Requirements
 
-- Node.js installed (v16 +)
+- Bun installed
 
 ### How to use
 
@@ -12,14 +12,14 @@ This is an example worker for the R2 Uploader, you can use the code in the `./di
    ```
 2. Install the dependencies
    ```shell
-    npm install
+   bun install
    ```
    
 3. Edit `wrangler.toml`, change `r2_buckets -> bucket_name` to your own bucket name
 
 4. Deploy the code
    ```shell
-   npm run deploy
+   bun run deploy
    ```
 5. Push your API key
    ```shell
@@ -29,3 +29,17 @@ This is an example worker for the R2 Uploader, you can use the code in the `./di
    This command will prompt you input the value, press `Enter` to confirm.
 
 And that's it, your worker is now ready to be used in R2 Uploader.
+
+### Available Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Health check |
+| GET | `/:key` | Get file |
+| GET | `/support_mpu` | Check multipart upload support |
+| PATCH | `/` | List all files |
+| PUT | `/:key` | Upload file |
+| POST | `/mpu/create/:key` | Start multipart upload |
+| PUT | `/mpu/:key` | Upload part |
+| DELETE | `/mpu/:key` | Abort multipart upload |
+| POST | `/mpu/complete/:key` | Complete multipart upload |
