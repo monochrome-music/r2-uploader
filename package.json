@@ -2,14 +2,14 @@
   "name": "r2-uploader-example-worker",
   "scripts": {
     "dev": "wrangler dev src/index.ts --port 4897",
-    "build": "wrangler deploy --dry-run --outdir dist src/index.ts",
+    "build": "wrangler deploy --dry-run --outfile dist/worker.js src/index.ts",
     "deploy": "wrangler deploy --minify src/index.ts"
   },
   "dependencies": {
-    "hono": "^4.6.12"
+    "hono": "^4.12.8"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240529.0",
-    "wrangler": "^3.57.2"
+    "@cloudflare/workers-types": "^4.20260317.1",
+    "wrangler": "^4.75.0"
   }
 }

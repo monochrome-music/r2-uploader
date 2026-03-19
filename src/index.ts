@@ -13,16 +13,35 @@ import MpuSupport from './routes/mpu/support'
 
 import checkHeader from "./middleware/checkHeader"
 
-const app = new Hono<{
+interface Env {
   Bindings: {
     R2_BUCKET: R2Bucket
+    UPLOAD_LIMITER: Ratelimit
+    READ_LIMITER: Ratelimit
   }
-}>()
+}
+
+const app = new Hono<Env>()
 
 app.use(cors())
 app.get('/support_mpu', MpuSupport)
 app.get('/', (c) => c.text('Hello R2! v2025.01.13'))
 app.use('*', checkHeader)
+
+app.use('*', async (c, next) => {
+  const ip = c.req.header('CF-Connecting-IP') || 'anonymous'
+  const path = new URL(c.req.url).pathname
+  const isWrite = ['PUT', 'POST', 'DELETE', 'PATCH'].includes(c.req.method)
+
+  const limiter = isWrite ? c.env.UPLOAD_LIMITER : c.env.READ_LIMITER
+  const { success } = await limiter.limit({ key: ip })
+
+  if (!success) {
+    return c.json({ error: 'Rate limit exceeded' }, 429)
+  }
+
+  await next()
+})
 
 // multipart upload operations
 app.post('/mpu/create/:key{.*}', MpuCreate)
