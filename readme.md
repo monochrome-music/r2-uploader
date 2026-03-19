@@ -30,16 +30,16 @@ This is an example worker for the R2 Uploader, you can use the code in the `./di
 
 And that's it, your worker is now ready to be used in R2 Uploader.
 
+### Features
+
+- **Upload only**: No viewing, listing, or deleting files
+- **Max file size**: 10MB per upload
+- **Unique filenames**: Random 8-char prefix on all uploads
+- **API key required**: Set `AUTH_KEY_SECRET` secret
+
 ### Available Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/` | Health check |
-| GET | `/:key` | Get file |
-| GET | `/support_mpu` | Check multipart upload support |
-| PATCH | `/` | List all files |
-| PUT | `/:key` | Upload file |
-| POST | `/mpu/create/:key` | Start multipart upload |
-| PUT | `/mpu/:key` | Upload part |
-| DELETE | `/mpu/:key` | Abort multipart upload |
-| POST | `/mpu/complete/:key` | Complete multipart upload |
+| PUT | `/:key` | Upload file (max 10MB) |

@@ -7,17 +7,3 @@ main = "src/index.ts"
 r2_buckets = [
     {binding = "R2_BUCKET", bucket_name = "test"}
 ]
-
-[[kv_namespaces]]
-binding = "UPLOAD_SIZES"
-id = "1001"
-
-[[ratelimits]]
-name = "UPLOAD_LIMITER"
-namespace_id = "1002"
-simple = { limit = 100, period = 60 }
-
-[[ratelimits]]
-name = "READ_LIMITER"
-namespace_id = "1003"
-simple = { limit = 500, period = 60 }

@@ -1,1 +1,1 @@
-This folder contains the built output assets for the worker "r2-uploader-example-worker" generated at 2026-03-19T18:04:58.000Z.
+This folder contains the built output assets for the worker "r2-uploader-example-worker" generated at 2026-03-19T18:30:00.692Z.

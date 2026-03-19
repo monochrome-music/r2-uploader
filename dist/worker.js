@@ -2182,35 +2182,12 @@ var cors = /* @__PURE__ */ __name((options) => {
   }, "cors2");
 }, "cors");
 
-// src/routes/get.ts
-async function get_default(c) {
-  const key = c.req.param("key");
-  const object = await c.env.R2_BUCKET.get(key);
-  if (object === null) {
-    return new Response("Object Not Found", { status: 404 });
-  }
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set("etag", object.httpEtag);
-  headers.set("Access-Control-Allow-Origin", "*");
-  return new Response(object.body, {
-    headers
-  });
-}
-__name(get_default, "default");
-
-// src/routes/patch.ts
-async function patch_default(c) {
-  const cursor = c.req.query("cursor");
-  const list = await c.env.R2_BUCKET.list({
-    cursor: cursor || void 0
-  });
-  return c.json(list);
-}
-__name(patch_default, "default");
-
 // src/routes/put.ts
 var MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
+function generateId() {
+  return Math.random().toString(36).substring(2, 10);
+}
+__name(generateId, "generateId");
 async function put_default(c) {
   const key = c.req.param("key");
   const file = await c.req.blob();
@@ -2221,123 +2198,15 @@ async function put_default(c) {
   if (file.size > MAX_UPLOAD_SIZE) {
     return c.text("File too large. Maximum size is 10MB", 413);
   }
-  await bucket.put(key, file, {
+  const prefixedKey = `${generateId()}-${key}`;
+  await bucket.put(prefixedKey, file, {
     httpMetadata: {
       contentType: file.type
     }
   });
-  return c.text("Done");
+  return c.text(prefixedKey);
 }
 __name(put_default, "default");
-
-// src/routes/mpu/create.ts
-async function create_default(c) {
-  const key = c.req.param("key");
-  if (!key) {
-    return c.text("file name is required", 400);
-  }
-  const upload = await c.env.R2_BUCKET.createMultipartUpload(key);
-  await c.env.UPLOAD_SIZES.put(upload.uploadId, "0");
-  return c.json({
-    uploadId: upload.uploadId,
-    key
-  });
-}
-__name(create_default, "default");
-
-// src/routes/mpu/parts.ts
-var MAX_UPLOAD_SIZE2 = 10 * 1024 * 1024;
-async function parts_default(c) {
-  const key = c.req.param("key");
-  const uploadId = c.req.query("uploadId");
-  const partNumber = c.req.query("partNumber");
-  if (!uploadId || !partNumber) {
-    return c.text("uploadId and partNumber are required", 400);
-  }
-  const multipartUpload = c.env.R2_BUCKET.resumeMultipartUpload(
-    key,
-    uploadId
-  );
-  const part = await c.req.blob();
-  const currentSize = parseInt(await c.env.UPLOAD_SIZES.get(uploadId) || "0");
-  const newSize = currentSize + part.size;
-  if (newSize > MAX_UPLOAD_SIZE2) {
-    return c.text(`Upload exceeds 10MB limit (current: ${currentSize}, part: ${part.size})`, 413);
-  }
-  await c.env.UPLOAD_SIZES.put(uploadId, newSize.toString());
-  const uploaded = await multipartUpload.uploadPart(
-    parseInt(partNumber),
-    part
-  );
-  return new Response(JSON.stringify({
-    etag: uploaded.etag
-  }), {
-    headers: {
-      "Content-Type": "application/json"
-    }
-  });
-}
-__name(parts_default, "default");
-
-// src/routes/mpu/abort.ts
-async function abort_default(c) {
-  const key = c.req.param("key");
-  const uploadId = c.req.query("uploadId");
-  if (!uploadId) {
-    return c.text("uploadId is required", 400);
-  }
-  const multipartUpload = c.env.R2_BUCKET.resumeMultipartUpload(
-    key,
-    uploadId
-  );
-  try {
-    await multipartUpload.abort();
-    await c.env.UPLOAD_SIZES.delete(uploadId);
-  } catch (error) {
-    return new Response(error.message, { status: 400 });
-  }
-  return new Response(null, { status: 204 });
-}
-__name(abort_default, "default");
-
-// src/routes/mpu/complete.ts
-async function complete_default(c) {
-  const key = c.req.param("key");
-  const uploadId = c.req.query("uploadId");
-  if (!uploadId) {
-    return c.text("uploadId is required", 400);
-  }
-  const multipartUpload = c.env.R2_BUCKET.resumeMultipartUpload(
-    key,
-    uploadId
-  );
-  let body;
-  try {
-    body = await c.req.json();
-  } catch (e) {
-    console.log("parsing complete body failed");
-    console.log(e);
-    return c.text("invalid json", 400);
-  }
-  try {
-    const object = await multipartUpload.complete(body.parts);
-    await c.env.UPLOAD_SIZES.delete(uploadId);
-    return new Response(null, {
-      headers: {
-        etag: object.httpEtag
-      }
-    });
-  } catch (e) {
-    return new Response(e.message, { status: 400 });
-  }
-}
-__name(complete_default, "default");
-
-// src/routes/mpu/support.ts
-function support_default(c) {
-  return c.text("yes");
-}
-__name(support_default, "default");
 
 // src/middleware/checkHeader.ts
 function validHeader(c) {
@@ -2376,29 +2245,10 @@ async function checkHeader_default(c, next) {
 __name(checkHeader_default, "default");
 
 // src/index.ts
-var MAX_UPLOAD_SIZE3 = 10 * 1024 * 1024;
 var app = new Hono2();
 app.use(cors());
-app.get("/support_mpu", support_default);
 app.get("/", (c) => c.text("Hello R2! v2025.01.13"));
 app.use("*", checkHeader_default);
-app.use("*", async (c, next) => {
-  const ip = c.req.header("CF-Connecting-IP") || "anonymous";
-  const path = new URL(c.req.url).pathname;
-  const isWrite = ["PUT", "POST", "DELETE", "PATCH"].includes(c.req.method);
-  const limiter = isWrite ? c.env.UPLOAD_LIMITER : c.env.READ_LIMITER;
-  const { success } = await limiter.limit({ key: ip });
-  if (!success) {
-    return c.json({ error: "Rate limit exceeded" }, 429);
-  }
-  await next();
-});
-app.post("/mpu/create/:key{.*}", create_default);
-app.put("/mpu/:key{.*}", parts_default);
-app.delete("/mpu/:key{.*}", abort_default);
-app.post("/mpu/complete/:key{.*}", complete_default);
-app.get("/:key{.*}", get_default);
-app.patch("/", patch_default);
 app.put("/:key{.*}", put_default);
 app.all("*", (c) => {
   return c.text("404 Not Found");
